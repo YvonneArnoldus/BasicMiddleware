@@ -3,11 +3,11 @@
 
 namespace Microsoft.AspNetCore.HttpOverrides
 {
-    /// <summary>
-    /// Default values related to <see cref="ForwardedHeadersMiddleware"/> middleware
-    /// </summary>
-    /// <seealso cref="Microsoft.AspNetCore.Builder.ForwardedHeadersOptions"/>
-    public static class ForwardedHeadersDefaults
+	/// <summary>
+	/// Default values related to <see cref="ForwardedHeadersForwarder"/> middleware
+	/// </summary>
+	/// <seealso cref="Microsoft.AspNetCore.Builder.ForwardedHeadersOptions"/>
+	public static class ForwardedHeadersDefaults
     {
         /// <summary>
         /// X-Forwarded-For

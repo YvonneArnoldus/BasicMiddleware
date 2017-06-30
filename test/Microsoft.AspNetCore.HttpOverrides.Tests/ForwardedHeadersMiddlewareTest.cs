@@ -1,13 +1,17 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides.Tests;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Microsoft.AspNetCore.HttpOverrides
@@ -555,6 +559,113 @@ namespace Microsoft.AspNetCore.HttpOverrides
             var req = new HttpRequestMessage(HttpMethod.Get, "");
             req.Headers.Add("X-Forwarded-For", "11.111.111.11");
             req.Headers.Add("X-Forwarded-Proto", "Protocol");
+            await server.CreateClient().SendAsync(req);
+            Assert.True(assertsExecuted);
+        }
+
+        [Fact]
+        public async Task ForwarderNewForwarder()
+        {
+            var assertsExecuted = false;
+
+            var builder = new WebHostBuilder()
+                .Configure(app =>
+                {
+                    app.UseForwardHeaders(new ForwardHeadersOptions()
+                    {
+                        Forwarders = new List<Forwarder> { new TestForwarder() }
+                    });
+                    app.Run(context =>
+                    {
+                        Assert.Equal("https", context.Request.Scheme);
+                        assertsExecuted = true;
+                        return Task.FromResult(0);
+                    });
+                });
+            var server = new TestServer(builder);
+
+            var req = new HttpRequestMessage(HttpMethod.Get, "");
+            req.Headers.Add("X-ARR-SSL", "something");
+            await server.CreateClient().SendAsync(req);
+            Assert.True(assertsExecuted);
+        }
+
+        [Fact]
+        public async Task ForwarderForwardedHeadersForwarder()
+        {
+            var assertsExecuted = false;
+
+            var builder = new WebHostBuilder()
+                .Configure(app =>
+                {
+                    app.UseForwardHeaders( new ForwardHeadersOptions {
+                        Forwarders = new List<Forwarder> {
+                            new ForwardedHeadersForwarder(
+                                new LoggerFactory(), 
+                                Options.Create(new ForwardedHeadersOptions {
+                                    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+                                })
+                            )
+                        }
+                    });
+                    app.Run(context =>
+                    {
+                        Assert.Equal("11.111.111.11", context.Connection.RemoteIpAddress.ToString());
+                        Assert.Equal("localhost", context.Request.Host.ToString());
+                        Assert.Equal("Protocol", context.Request.Scheme);
+                        assertsExecuted = true;
+                        return Task.FromResult(0);
+
+                    });
+                });
+            var server = new TestServer(builder);
+
+            var req = new HttpRequestMessage(HttpMethod.Get, "");
+            req.Headers.Add("X-Forwarded-For", "11.111.111.11");
+            req.Headers.Add("X-Forwarded-Proto", "Protocol");
+            await server.CreateClient().SendAsync(req);
+            Assert.True(assertsExecuted);
+        }
+
+        [Fact]
+        public async Task ForwarderCombineForwardedHeadersForwarderAndNewForwarder()
+        {
+            var assertsExecuted = false;
+
+            var builder = new WebHostBuilder()
+                .Configure(app =>
+                {
+	                var options = new ForwardHeadersOptions
+	                {
+		                Forwarders = new List<Forwarder>
+		                {
+			                new ForwardedHeadersForwarder(
+				                new LoggerFactory(),
+				                Options.Create(new ForwardedHeadersOptions
+				                {
+					                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+				                })
+			                ),
+			                new TestForwarder()
+						}
+	                };
+	                app.UseForwardHeaders(options);
+                    app.Run(context =>
+                    {
+                        Assert.Equal("11.111.111.11", context.Connection.RemoteIpAddress.ToString());
+                        Assert.Equal("localhost", context.Request.Host.ToString());
+                        Assert.Equal("https", context.Request.Scheme);
+                        assertsExecuted = true;
+                        return Task.FromResult(0);
+
+                    });
+                });
+            var server = new TestServer(builder);
+
+            var req = new HttpRequestMessage(HttpMethod.Get, "");
+            req.Headers.Add("X-Forwarded-For", "11.111.111.11");
+	        req.Headers.Add("X-Forwarded-Proto", "Protocol");
+			req.Headers.Add("X-ARR-SSL", "something");
             await server.CreateClient().SendAsync(req);
             Assert.True(assertsExecuted);
         }

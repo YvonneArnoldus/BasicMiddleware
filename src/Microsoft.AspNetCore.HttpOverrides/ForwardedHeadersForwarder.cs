@@ -1,42 +1,31 @@
-// Copyright (c) .NET Foundation. All rights reserved.
-// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.AspNetCore.HttpOverrides
 {
-    public class ForwardedHeadersMiddleware
+    public class ForwardedHeadersForwarder : Forwarder
     {
         private readonly ForwardedHeadersOptions _options;
-        private readonly RequestDelegate _next;
-        private readonly ILogger _logger;
+        private ILogger _logger;
 
-        public ForwardedHeadersMiddleware(RequestDelegate next, ILoggerFactory loggerFactory, IOptions<ForwardedHeadersOptions> options)
+        public ForwardedHeadersForwarder(ILoggerFactory loggerFactory, IOptions<ForwardedHeadersOptions> options)
         {
-            if (next == null)
-            {
-                throw new ArgumentNullException(nameof(next));
-            }
-            if (loggerFactory == null)
-            {
-                throw new ArgumentNullException(nameof(loggerFactory));
-            }
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+	        if (options == null)
+	        {
+		        throw new ArgumentNullException(nameof(options));
+	        }
+	        if (loggerFactory == null)
+	        {
+		        throw new ArgumentNullException(nameof(loggerFactory));
+	        }
 
-            // Make sure required options is not null or whitespace
+	        // Make sure required options is not null or whitespace
             EnsureOptionNotNullorWhitespace(options.Value.ForwardedForHeaderName, nameof(options.Value.ForwardedForHeaderName));
             EnsureOptionNotNullorWhitespace(options.Value.ForwardedHostHeaderName, nameof(options.Value.ForwardedHostHeaderName));
             EnsureOptionNotNullorWhitespace(options.Value.ForwardedProtoHeaderName, nameof(options.Value.ForwardedProtoHeaderName));
@@ -45,8 +34,7 @@ namespace Microsoft.AspNetCore.HttpOverrides
             EnsureOptionNotNullorWhitespace(options.Value.OriginalProtoHeaderName, nameof(options.Value.OriginalProtoHeaderName));
 
             _options = options.Value;
-            _logger = loggerFactory.CreateLogger<ForwardedHeadersMiddleware>();
-            _next = next;
+	        _logger = loggerFactory.CreateLogger<ForwardedHeadersForwarder>();
         }
 
         private static void EnsureOptionNotNullorWhitespace(string value, string propertyName)
@@ -57,13 +45,7 @@ namespace Microsoft.AspNetCore.HttpOverrides
             }
         }
 
-        public Task Invoke(HttpContext context)
-        {
-            ApplyForwarders(context);
-            return _next(context);
-        }
-
-        public void ApplyForwarders(HttpContext context)
+        public override void Apply(HttpContext context)
         {
             // Gather expected headers. Enabled headers must have the same number of entries.
             string[] forwardedFor = null, forwardedProto = null, forwardedHost = null;
