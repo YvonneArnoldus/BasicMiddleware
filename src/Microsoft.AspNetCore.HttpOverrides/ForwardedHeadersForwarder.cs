@@ -45,7 +45,7 @@ namespace Microsoft.AspNetCore.HttpOverrides
             }
         }
 
-        public override void Apply(HttpContext context)
+        public override void ApplyForwarders(HttpContext context)
         {
             // Gather expected headers. Enabled headers must have the same number of entries.
             string[] forwardedFor = null, forwardedProto = null, forwardedHost = null;

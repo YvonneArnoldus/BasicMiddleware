@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.HttpOverrides
 {
-    public class ForwardHeadersMiddleware
+    public class ForwardedHeadersMiddleware
     {
-        private readonly ForwardHeadersOptions _options;
+        private readonly ForwardedHeadersOptions _options;
         private readonly RequestDelegate _next;
-        private readonly ILoggerFactory _loggerFactory;
+        private readonly ForwardedHeadersForwarder _forwardedHeadersForwarder;
 
-        public ForwardHeadersMiddleware(RequestDelegate next, ILoggerFactory loggerFactory, IOptions<ForwardHeadersOptions> options)
+        public ForwardedHeadersMiddleware(RequestDelegate next, ILoggerFactory loggerFactory, IOptions<ForwardedHeadersOptions> options)
         {
             if (next == null)
             {
@@ -27,14 +28,19 @@ namespace Microsoft.AspNetCore.HttpOverrides
                 throw new ArgumentNullException(nameof(options));
             }
             _options = options.Value;
-            _loggerFactory = loggerFactory;
             _next = next;
+            _forwardedHeadersForwarder = new ForwardedHeadersForwarder(loggerFactory, options);
         }
 
         public Task Invoke(HttpContext context)
         {
-            foreach (var forwarder in _options.Forwarders)
-                forwarder.Apply(context);
+            // apply forwareded headers forwarder
+            _forwardedHeadersForwarder.ApplyForwarders(context);
+
+            // apply additional fowarders
+            if ( _options.AdditionalForwarders != null )
+                foreach (var forwarder in _options.AdditionalForwarders)
+                    forwarder.ApplyForwarders(context);
 
             return _next(context);
         }

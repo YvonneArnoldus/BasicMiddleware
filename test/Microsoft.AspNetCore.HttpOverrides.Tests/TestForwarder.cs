@@ -6,7 +6,7 @@ namespace Microsoft.AspNetCore.HttpOverrides.Tests
 {
     public class TestForwarder : Forwarder
     {
-	    public override void Apply(HttpContext context)
+	    public override void ApplyForwarders(HttpContext context)
 	    {
 		    if (!context.Request.Headers.ContainsKey("X-ARR-SSL")) return;
 				context.Request.Scheme = "https";

@@ -72,5 +72,8 @@ namespace Microsoft.AspNetCore.Builder
         /// The default is 'true'.
         /// </summary>
         public bool RequireHeaderSymmetry { get; set; } = true;
+
+        // Additional Forwarders
+        public IEnumerable<Forwarder> AdditionalForwarders { get; set; }
     }
 }

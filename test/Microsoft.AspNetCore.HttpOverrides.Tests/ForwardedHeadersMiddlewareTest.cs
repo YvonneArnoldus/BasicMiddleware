@@ -571,9 +571,9 @@ namespace Microsoft.AspNetCore.HttpOverrides
             var builder = new WebHostBuilder()
                 .Configure(app =>
                 {
-                    app.UseForwardHeaders(new ForwardHeadersOptions()
+                    app.UseForwardedHeaders(new ForwardedHeadersOptions()
                     {
-                        Forwarders = new List<Forwarder> { new TestForwarder() }
+                        AdditionalForwarders = new List<Forwarder> { new TestForwarder() }
                     });
                     app.Run(context =>
                     {
@@ -598,15 +598,9 @@ namespace Microsoft.AspNetCore.HttpOverrides
             var builder = new WebHostBuilder()
                 .Configure(app =>
                 {
-                    app.UseForwardHeaders( new ForwardHeadersOptions {
-                        Forwarders = new List<Forwarder> {
-                            new ForwardedHeadersForwarder(
-                                new LoggerFactory(), 
-                                Options.Create(new ForwardedHeadersOptions {
-                                    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-                                })
-                            )
-                        }
+                    app.UseForwardedHeaders( new ForwardedHeadersOptions {
+	                    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+						AdditionalForwarders = new List<Forwarder> {}
                     });
                     app.Run(context =>
                     {
@@ -635,21 +629,16 @@ namespace Microsoft.AspNetCore.HttpOverrides
             var builder = new WebHostBuilder()
                 .Configure(app =>
                 {
-	                var options = new ForwardHeadersOptions
+	                var options = new ForwardedHeadersOptions
 	                {
-		                Forwarders = new List<Forwarder>
+		                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+
+						AdditionalForwarders = new List<Forwarder>
 		                {
-			                new ForwardedHeadersForwarder(
-				                new LoggerFactory(),
-				                Options.Create(new ForwardedHeadersOptions
-				                {
-					                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-				                })
-			                ),
 			                new TestForwarder()
 						}
 	                };
-	                app.UseForwardHeaders(options);
+	                app.UseForwardedHeaders(options);
                     app.Run(context =>
                     {
                         Assert.Equal("11.111.111.11", context.Connection.RemoteIpAddress.ToString());
